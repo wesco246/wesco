@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Student Selector</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-family:Arial,Helvetica,sans-serif}
+body{background:#fffbd2;color:#111}
+.header{height:62px;background:#2f6cad;color:#fff;display:flex;align-items:center;padding:0 18px}
+.title{font-size:42px;font-weight:400}
+.page{padding:16px 3vw 22px}
+.card{width:min(790px,94vw);margin:0 auto;background:#5db0df;border:7px solid #9cdef3;border-radius:24px;box-shadow:0 10px 22px #0002;padding:18px 24px 20px}
+.selector-grid{display:grid;grid-template-columns:225px 225px;gap:24px 28px;max-width:478px;margin:0 auto}
+.ball{
+  width:190px;aspect-ratio:1 / 1;height:auto;justify-self:center;border-radius:50%;border:3px solid rgba(255,255,255,.9);
+  position:relative;display:flex;align-items:center;justify-content:center;
+  cursor:default;box-shadow:0 7px 12px #0003;
+  transition:transform .15s,filter .15s,box-shadow .15s,opacity .15s;
+  overflow:hidden;
+}
+.ball:before{
+  content:"";position:absolute;width:130px;height:68px;border-radius:50%;
+  background:rgba(255,255,255,.72);left:27px;top:18px;transform:rotate(-27deg);
+}
+.ball:after{
+  content:"";position:absolute;width:25px;height:25px;border-radius:50%;
+  background:rgba(255,255,255,.72);left:27px;top:118px;
+}
+.ball.red{background:#df6552}
+.ball.yellow{background:#edc33c}
+.ball.cyan{background:#62bfd0}
+.ball.green{background:#68bd70}
+.ball-number{
+  width:96px;height:96px;border-radius:50%;background:#fff;
+  display:flex;align-items:center;justify-content:center;
+  font-size:56px;position:relative;z-index:2;
+  box-shadow:0 2px 4px #0002;
+}
+.ball:hover{transform:scale(1.02)}
+.ball.selected{box-shadow:0 0 0 6px #f7dd55,0 0 14px 5px #fff9,0 9px 20px #0004;transform:scale(1.02);filter:brightness(1.12)}
+.ball.picked{animation:picked .8s ease-in-out 2;box-shadow:0 0 0 5px #fff,0 0 12px 4px #fff8,0 9px 20px #0005}
+.ball.dim{opacity:.45;filter:saturate(.45)}
+@keyframes picked{
+  0%,100%{transform:scale(1)}
+  50%{transform:scale(1.05)}
+}
+.controls{display:flex;align-items:center;justify-content:center;gap:16px;margin-top:32px;flex-wrap:nowrap}
+.repeat-box{background:#438eb9;border-radius:12px;padding:8px 10px 9px;color:#eaf8ff;text-align:center;min-width:105px}
+.repeat-label{font-size:12px;letter-spacing:.5px;margin-bottom:4px}
+.repeat-options{display:flex;gap:5px;justify-content:center}
+.repeat-btn{
+  border:0;border-radius:8px;background:#7fb5cb;color:#eaf8ff;
+  min-width:38px;height:31px;font-size:13px;cursor:pointer
+}
+.repeat-btn.selected{background:#fff;color:#123e55}
+.start{width:92px;height:92px;border-radius:50%;border:3px solid #fff;background:#72d276;
+font-size:17px;letter-spacing:1px;cursor:pointer;box-shadow:0 4px 8px #0004}
+.start:active,.fullscreen:active{transform:scale(.96)}
+.fullscreen{
+  width:92px;height:92px;border-radius:50%;border:3px solid #fff;
+  background:#8bb8c8;color:#111;font-size:15px;line-height:1.05;
+  letter-spacing:1px;cursor:pointer;box-shadow:0 4px 8px #0004;
+  display:flex;align-items:center;justify-content:center;text-align:center;
+}
+.status{text-align:center;height:24px;font-size:16px;color:#eaf8ff;margin-top:10px}
+@media(max-width:700px){
+.header{height:62px}.title{font-size:38px}
+.page{padding:15px 10px}.card{padding:18px;border-width:6px}
+.selector-grid{grid-template-columns:140px 140px;gap:12px 14px}
+.ball{width:140px;height:140px}
+.ball:before{width:90px;height:45px;left:18px;top:12px}
+.ball:after{width:18px;height:18px;left:18px;top:78px}
+.ball-number{width:72px;height:72px;font-size:42px}
+.controls{margin-top:22px;justify-content:center;flex-wrap:wrap}
+}
+</style>
+</head>
+<body>
+<header class="header"><div class="title">Student Selector</div></header>
+
+<main class="page">
+<section class="card">
+  <div class="selector-grid">
+    <button class="ball red" data-student="1" aria-label="Student 1"><span class="ball-number">1</span></button>
+    <button class="ball yellow" data-student="2" aria-label="Student 2"><span class="ball-number">2</span></button>
+    <button class="ball cyan" data-student="3" aria-label="Student 3"><span class="ball-number">3</span></button>
+    <button class="ball green" data-student="4" aria-label="Student 4"><span class="ball-number">4</span></button>
+  </div>
+
+  <div class="controls">
+    <div class="repeat-box">
+      <div class="repeat-label">REPEATS?</div>
+      <div class="repeat-options">
+        <button class="repeat-btn" data-repeat="yes">YES</button>
+        <button class="repeat-btn selected" data-repeat="no">NO</button>
+      </div>
+    </div>
+    <button class="start" id="start">START</button>
+    <button class="fullscreen" id="fullscreen">FULL<br>SCREEN</button>
+  </div>
+  <div class="status" id="status">READY</div>
+</section>
+</main>
+
+<script>
+(function(){
+  var balls=[].slice.call(document.querySelectorAll('.ball'));
+  var start=document.getElementById('start');
+  var status=document.getElementById('status');
+  var repeat='no';
+  var running=false;
+  var pickedStudents=[];
+  var audioCtx=null;
+
+  function getAudio(){
+    if(!audioCtx){
+      var AC=window.AudioContext||window.webkitAudioContext;
+      if(!AC)return null;
+      audioCtx=new AC();
+    }
+    if(audioCtx.state==='suspended') audioCtx.resume();
+    return audioCtx;
+  }
+
+  function tone(freq,duration,type,volume,when){
+    var ctx=getAudio();
+    if(!ctx)return;
+    var osc=ctx.createOscillator();
+    var gain=ctx.createGain();
+    osc.type=type||'sine';
+    osc.frequency.setValueAtTime(freq,when||ctx.currentTime);
+    gain.gain.setValueAtTime(0.0001,when||ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(volume||0.045,(when||ctx.currentTime)+0.008);
+    gain.gain.exponentialRampToValueAtTime(0.0001,(when||ctx.currentTime)+duration);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(when||ctx.currentTime);
+    osc.stop((when||ctx.currentTime)+duration+0.02);
+  }
+
+  function pickBeep(n){
+    var ctx=getAudio();
+    if(!ctx)return;
+    var now=ctx.currentTime;
+    var freq=430+n*28;
+    tone(freq,0.075,'square',0.035,now);
+  }
+
+  function winnerSound(){
+    var ctx=getAudio();
+    if(!ctx)return;
+    var now=ctx.currentTime;
+    tone(740,0.16,'sine',0.06,now);
+    tone(988,0.24,'sine',0.065,now+0.12);
+    tone(1480,0.32,'sine',0.055,now+0.28);
+  }
+
+  document.querySelectorAll('.repeat-btn').forEach(function(btn){
+    btn.addEventListener('click',function(e){
+      e.preventDefault();
+      repeat=btn.dataset.repeat;
+      document.querySelectorAll('.repeat-btn').forEach(function(b){
+        b.classList.toggle('selected',b.dataset.repeat===repeat);
+      });
+      if(repeat==='yes'){
+        status.textContent='REPEATS: YES';
+      }else{
+        status.textContent='REPEATS: NO';
+      }
+    });
+  });
+
+  function getAvailable(){
+    if(repeat==='yes') return balls.slice();
+
+    var available=balls.filter(function(ball){
+      return pickedStudents.indexOf(ball.dataset.student)===-1;
+    });
+
+    // Once all four have been used, start a new no-repeat cycle.
+    if(available.length===0){
+      pickedStudents=[];
+      available=balls.slice();
+    }
+    return available;
+  }
+
+  function chooseStudent(){
+    if(running)return;
+
+    running=true;
+    start.disabled=true;
+    status.textContent='CHOOSING...';
+
+    var available=getAvailable();
+
+    balls.forEach(function(b){
+      b.classList.remove('selected','picked','dim');
+      if(available.indexOf(b)===-1)b.classList.add('dim');
+    });
+
+    var flashes=0;
+    var totalFlashes=14;
+
+    var flashTimer=setInterval(function(){
+      balls.forEach(function(b){b.classList.remove('picked');});
+
+      var flashBall=available[Math.floor(Math.random()*available.length)];
+      pickBeep(flashes);
+      flashBall.classList.remove('dim');
+      flashBall.classList.add('picked');
+
+      flashes++;
+
+      if(flashes>=totalFlashes){
+        clearInterval(flashTimer);
+
+        var winner=available[Math.floor(Math.random()*available.length)];
+        winnerSound();
+
+        balls.forEach(function(b){
+          b.classList.remove('dim','picked','selected');
+          if(b!==winner)b.classList.add('dim');
+        });
+
+        winner.classList.remove('dim');
+        winner.classList.add('selected','picked');
+
+        if(repeat==='no'){
+          pickedStudents.push(winner.dataset.student);
+        }
+
+        status.textContent='STUDENT '+winner.dataset.student+' SELECTED';
+        running=false;
+        start.disabled=false;
+      }
+    },110);
+  }
+
+  start.addEventListener('click',chooseStudent);
+
+  var fullscreenButton=document.getElementById('fullscreen');
+
+  function updateFullscreenButton(){
+    var active=!!(document.fullscreenElement || document.webkitFullscreenElement);
+    fullscreenButton.innerHTML=active?'EXIT<br>FULL<br>SCREEN':'FULL<br>SCREEN';
+  }
+
+  fullscreenButton.addEventListener('click',function(){
+    var target=document.documentElement;
+    if(!document.fullscreenElement && !document.webkitFullscreenElement){
+      var request=target.requestFullscreen || target.webkitRequestFullscreen;
+      if(request){
+        var result=request.call(target);
+        if(result && result.catch) result.catch(function(){});
+      }
+    }else{
+      var exit=document.exitFullscreen || document.webkitExitFullscreen;
+      if(exit){
+        var result=exit.call(document);
+        if(result && result.catch) result.catch(function(){});
+      }
+    }
+  });
+
+  document.addEventListener('fullscreenchange',updateFullscreenButton);
+  document.addEventListener('webkitfullscreenchange',updateFullscreenButton);
+
+  updateFullscreenButton();
+})();
+</script>
+</body>
+</html>
