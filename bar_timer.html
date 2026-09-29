@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bar Timer</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-family:Arial,Helvetica,sans-serif}
+body{background:#fffbd2;color:#111}
+.header{height:62px;background:#2f6cad;color:#fff;display:flex;align-items:center;padding:0 18px}
+.title{font-size:42px;font-weight:400}
+.page{padding:16px 3vw 22px}
+.card{width:min(900px,94vw);margin:0 auto;background:#5db0df;border:7px solid #9cdef3;border-radius:24px;box-shadow:0 10px 22px #0002;padding:18px 26px 18px}
+.display{height:165px;background:#fffdf0;border:3px solid #78a9b8;border-radius:18px;position:relative;display:flex;align-items:center;justify-content:center}
+.time-wrap{width:100%;height:100%;display:flex;align-items:center;justify-content:center}
+.time{font-size:128px;font-weight:700;letter-spacing:-6px;font-variant-numeric:tabular-nums;width:180px;text-align:center;background:transparent;border:0;outline:0;color:#111;font-family:Arial,Helvetica,sans-serif;padding:0;cursor:text}
+.time:focus{background:#dff4fb;border:3px solid #78a9b8;border-radius:12px;outline:0}
+.time-separator{font-size:108px;font-weight:700;line-height:1;display:flex;align-items:center;justify-content:center;width:62px;color:#111}
+.adjust{position:absolute;top:24px;bottom:24px;display:flex;flex-direction:column;justify-content:space-between;gap:18px}
+.adjust.left{left:22px}.adjust.right{right:22px}
+.arrow{width:46px;height:46px;border:0;border-radius:50%;background:#050505;color:#fff;font-size:19px;cursor:pointer}
+.arrow:active,.button:active,.preset:active,.bar-choice:active{transform:scale(.96)}
+
+.bars{margin-top:10px;margin-left:55px;display:flex;flex-direction:column;gap:7px}
+.student-bar{height:50px;border:2px solid #fff;background:rgba(255,255,255,.12);display:flex;align-items:center;padding-left:0;position:relative;overflow:visible;transition:opacity .15s,filter .15s,box-shadow .15s}
+.student-bar:nth-child(1){--bar-color:#df6552}
+.student-bar:nth-child(2){--bar-color:#edae40}
+.student-bar:nth-child(3){--bar-color:#70cf7a}
+.student-bar:nth-child(4){--bar-color:#2f86bb}
+.bar-fill{position:absolute;left:0;top:0;bottom:0;width:var(--progress,100%);background:var(--bar-color);transition:width .08s linear;z-index:0}
+.student-number{z-index:2;cursor:pointer}
+.student-bar.inactive{opacity:.22;filter:saturate(.35)}
+.student-bar.current{box-shadow:inset 0 0 0 4px #f7dd55, 0 0 0 2px #f7dd55}
+.student-number{position:absolute;left:-55px;top:50%;transform:translateY(-50%);width:48px;height:48px;border-radius:50%;border:2px solid #fff;color:#fff;display:flex;align-items:center;justify-content:center;font-size:19px;background:rgba(0,0,0,.06)}
+.student-bar:nth-child(2) .student-number{color:#fff}
+.student-bar:nth-child(3) .student-number{color:#fff}
+
+.bottom{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:12px;flex-wrap:nowrap}
+.bar-control{background:#438eb9;border-radius:13px;padding:8px 10px 9px;display:flex;align-items:center;gap:7px;color:#eaf8ff}
+.bar-label{font-size:15px;letter-spacing:.5px}
+.bar-choice{width:42px;height:42px;border-radius:8px;border:2px solid #fff;background:#f7f5e9;color:#111;font-size:21px;cursor:pointer;font-weight:400}
+.bar-choice.selected{background:#f7f5e9;box-shadow:0 0 0 3px #f7dd55}
+.button{width:92px;height:92px;border-radius:50%;border:3px solid #fff;font-size:15px;letter-spacing:1px;cursor:pointer;box-shadow:0 4px 8px #0004}
+.start{background:#72d276}
+.dark{background:#123e55;color:#fff}
+.reset{background:#e9f4f7}
+.presets{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:9px}
+.label{font-size:16px;color:#eaf8ff;margin-right:2px}
+.preset{border:0;background:#e8f5fa;border-radius:50%;min-width:44px;height:44px;padding:0 8px;font-size:16px;cursor:pointer;box-shadow:0 3px 6px #0002}
+.status{text-align:center;height:23px;font-size:15px;color:#eaf8ff;margin-top:6px}
+.fullscreen{background:#8bb8c8;line-height:1.08;padding:0 8px;white-space:normal}
+.done-screen{position:fixed;inset:0;background:#bd4f3d;color:#fff;z-index:9999;display:none;align-items:center;justify-content:center;flex-direction:column;gap:28px;font-family:Arial,Helvetica,sans-serif}
+.done-screen.show{display:flex}
+.done-title{font-size:clamp(70px,11vw,150px);font-weight:400}
+.done-back{border:0;border-radius:50px;padding:14px 28px;background:#fff;color:#222;font-size:20px;font-weight:700;cursor:pointer;box-shadow:0 4px 10px #0003}
+.done-back:active{transform:scale(.97)}
+@media(max-width:700px){
+.header{height:62px}.title{font-size:37px}
+.page{padding:14px 10px}.card{padding:15px;border-width:6px}
+.display{height:150px}.time{font-size:92px;width:120px}.time-separator{font-size:78px;width:42px}
+.adjust{top:20px;bottom:20px;gap:12px}.arrow{width:38px;height:38px}
+.student-bar{height:48px}.student-number{left:-46px;width:40px;height:40px;font-size:17px}
+.button{width:78px;height:78px;font-size:13px}.bottom{gap:8px}.bar-choice{width:36px;height:36px}
+}
+</style>
+</head>
+<body>
+<div class="done-screen" id="doneScreen">
+  <div class="done-title">TIMER DONE!</div>
+  <button class="done-back" id="doneBack">BACK TO TIMER</button>
+</div>
+<header class="header"><div class="title">Bar Timer</div></header>
+
+<main class="page">
+<section class="card">
+  <div class="display" id="displayBox">
+    <div class="time-wrap">
+      <input class="time" id="minutes" value="00" inputmode="numeric" maxlength="2" aria-label="Minutes">
+      <span class="time-separator">:</span>
+      <input class="time" id="seconds" value="25" inputmode="numeric" maxlength="2" aria-label="Seconds">
+    </div>
+    <div class="adjust left">
+      <button class="arrow" id="minUp">▲</button>
+      <button class="arrow" id="minDown">▼</button>
+    </div>
+    <div class="adjust right">
+      <button class="arrow" id="secUp">▲</button>
+      <button class="arrow" id="secDown">▼</button>
+    </div>
+  </div>
+
+  <div class="bars" id="bars">
+    <div class="student-bar" data-student="1"><span class="bar-fill"></span><span class="student-number">1</span></div>
+    <div class="student-bar" data-student="2"><span class="bar-fill"></span><span class="student-number">2</span></div>
+    <div class="student-bar" data-student="3"><span class="bar-fill"></span><span class="student-number">3</span></div>
+    <div class="student-bar" data-student="4"><span class="bar-fill"></span><span class="student-number">4</span></div>
+  </div>
+
+  <div class="bottom">
+    <div class="bar-control">
+      <span class="bar-label">STUDENTS</span>
+      <button class="bar-choice" data-count="1">1</button>
+      <button class="bar-choice" data-count="2">2</button>
+      <button class="bar-choice" data-count="3">3</button>
+      <button class="bar-choice selected" data-count="4">4</button>
+    </div>
+    <button class="button start" id="start">START</button>
+    <button class="button dark" id="clear">CLEAR</button>
+    <button class="button reset" id="reset">RESET</button>
+    <button class="button fullscreen" id="fullscreen">FULL<br>SCREEN</button>
+  </div>
+
+  <div class="presets">
+    <span class="label">PRESETS</span>
+    <button class="preset" data-time="10">:10</button>
+    <button class="preset" data-time="15">:15</button>
+    <button class="preset" data-time="30">:30</button>
+    <button class="preset" data-time="45">:45</button>
+    <button class="preset" data-time="60">1</button>
+    <button class="preset" data-time="120">2</button>
+    <button class="preset" data-time="180">3</button>
+    <button class="preset" data-time="240">4</button>
+  </div>
+  <div class="status" id="status">READY</div>
+</section>
+</main>
+
+<script>
+(function(){
+  var selected=25, remaining=25, running=false, timer=null, last=0;
+  var studentCount=4, currentStudent=0;
+
+  var minInput=document.getElementById('minutes');
+  var secInput=document.getElementById('seconds');
+  var start=document.getElementById('start');
+  var status=document.getElementById('status');
+  var bars=[].slice.call(document.querySelectorAll('.student-bar'));
+
+  function format(total){
+    total=Math.max(0,Math.round(total));
+    return String(Math.floor(total/60)).padStart(2,'0')+':'+String(total%60).padStart(2,'0');
+  }
+  function render(){
+    var p=format(running?remaining:selected).split(':');
+    minInput.value=p[0]; secInput.value=p[1];
+  }
+  function updateBars(){
+    bars.forEach(function(bar,i){
+      bar.classList.toggle('inactive',i>=studentCount);
+      bar.classList.toggle('current',running && i===currentStudent);
+      var fill=bar.querySelector('.bar-fill');
+      if(i<currentStudent) fill.style.width='0%';
+      else if(i===currentStudent && running) fill.style.width=(selected>0 ? Math.max(0,Math.min(100,(remaining/selected)*100)) : 0)+'%';
+      else if(i<studentCount) fill.style.width='100%';
+      else fill.style.width='0%';
+    });
+    document.querySelectorAll('.bar-choice').forEach(function(b){
+      b.classList.toggle('selected',Number(b.dataset.count)===studentCount);
+    });
+  }
+  function stop(){
+    if(timer!==null){clearInterval(timer);timer=null;}
+  }
+  function commit(){
+    if(running){render();return;}
+    var m=parseInt(minInput.value,10); var s=parseInt(secInput.value,10);
+    if(isNaN(m))m=0;if(isNaN(s))s=0;
+    m=Math.min(99,Math.max(0,m));
+    s=Math.min(60,Math.max(0,s));
+    selected=m*60+s; remaining=selected; render(); status.textContent='READY';
+  }
+  function beep(){
+    try{
+      var C=window.AudioContext||window.webkitAudioContext;
+      if(C){
+        var c=new C(),o=c.createOscillator(),g=c.createGain();
+        o.type='sine'; o.frequency.value=880; g.gain.value=.08;
+        o.connect(g);g.connect(c.destination);
+        o.start();o.stop(c.currentTime+.22);
+      }
+    }catch(e){}
+  }
+
+  function tick(){
+    if(!running)return;
+    var now=Date.now(), elapsed=(now-last)/1000; last=now;
+    remaining=Math.max(0,remaining-elapsed);
+    updateBars();
+    render();
+    if(remaining<=0){
+      beep();
+      if(currentStudent < studentCount-1){
+        currentStudent++;
+        remaining=selected;
+        last=Date.now();
+        status.textContent='STUDENT '+(currentStudent+1)+' / '+studentCount;
+        updateBars();
+        render();
+      }else{
+        running=false;
+        remaining=0;
+        bars.forEach(function(bar){
+          var fill=bar.querySelector('.bar-fill');
+          fill.style.width='0%';
+        });
+        updateBars();
+        stop();
+        start.textContent='START';
+        status.textContent='COMPLETE';
+        render();
+        document.getElementById('doneScreen').classList.add('show');
+      }
+    }
+  }
+  function begin(){
+    stop();last=Date.now();timer=setInterval(tick,50);
+  }
+
+  [minInput,secInput].forEach(function(input){
+    input.addEventListener('focus',function(){input.select();});
+    input.addEventListener('keydown',function(e){
+      if(e.key==='Enter'){e.preventDefault();commit();input.blur();}
+      if(e.key==='Escape'){render();input.blur();}
+    });
+    input.addEventListener('blur',function(){setTimeout(function(){
+      if(document.activeElement!==minInput && document.activeElement!==secInput)commit();
+    },0);});
+    input.addEventListener('input',function(){
+      input.value=input.value.replace(/\D/g,'');
+      var n=Number(input.value);
+      if(input===minInput && n>99)input.value='99';
+      if(input===secInput && n>60)input.value='60';
+    });
+  });
+
+  document.getElementById('minUp').onclick=function(){if(running)return;selected=Math.min(5940,selected+60);render();};
+  document.getElementById('minDown').onclick=function(){if(running)return;selected=Math.max(0,selected-60);render();};
+  document.getElementById('secUp').onclick=function(){if(running)return;selected=Math.min(5940,selected+1);render();};
+  document.getElementById('secDown').onclick=function(){if(running)return;selected=Math.max(0,selected-1);render();};
+
+  function chooseStudentCount(count){
+    if(running)return;
+    studentCount=Math.max(1,Math.min(4,Number(count)));
+    currentStudent=0;
+    remaining=selected;
+    status.textContent='READY';
+    updateBars();
+    render();
+  }
+
+  document.querySelectorAll('.bar-choice').forEach(function(b){
+    b.onclick=function(){
+      chooseStudentCount(b.dataset.count);
+    };
+  });
+
+  bars.forEach(function(bar){
+    bar.querySelector('.student-number').onclick=function(e){
+      e.stopPropagation();
+      chooseStudentCount(bar.dataset.student);
+    };
+  });
+
+  document.querySelectorAll('.preset').forEach(function(b){
+    b.onclick=function(){if(running)return;selected=Number(b.dataset.time);remaining=selected;render();status.textContent='READY';};
+  });
+
+  start.onclick=function(){
+    document.getElementById('doneScreen').classList.remove('show');
+    if(running){
+      running=false;stop();start.textContent='START';status.textContent='PAUSED';updateBars();return;
+    }
+    if(selected<=0)return;
+    // A completed run always starts a fresh group.
+    if(currentStudent>=studentCount)currentStudent=0;
+    remaining=remaining>0 && status.textContent==='PAUSED' ? remaining : selected;
+    running=true;start.textContent='PAUSE';status.textContent='STUDENT '+(currentStudent+1)+' / '+studentCount;updateBars();render();begin();
+  };
+
+  document.getElementById('clear').onclick=function(){
+    stop();running=false;selected=0;remaining=0;currentStudent=0;start.textContent='START';status.textContent='READY';document.getElementById('doneScreen').classList.remove('show');updateBars();render();
+  };
+  document.getElementById('reset').onclick=function(){
+    stop();running=false;remaining=selected;currentStudent=0;start.textContent='START';status.textContent='READY';document.getElementById('doneScreen').classList.remove('show');updateBars();render();
+  };
+
+
+  var doneScreen=document.getElementById('doneScreen');
+  var fullscreenButton=document.getElementById('fullscreen');
+
+  function updateFullscreenButton(){
+    var active=!!(document.fullscreenElement || document.webkitFullscreenElement);
+    fullscreenButton.innerHTML=active?'EXIT<br>FULL<br>SCREEN':'FULL<br>SCREEN';
+  }
+
+  fullscreenButton.onclick=function(){
+    var target=document.documentElement;
+    if(!document.fullscreenElement && !document.webkitFullscreenElement){
+      var request=target.requestFullscreen || target.webkitRequestFullscreen;
+      if(request){
+        var result=request.call(target);
+        if(result && result.catch) result.catch(function(){});
+      }
+    }else{
+      var exit=document.exitFullscreen || document.webkitExitFullscreen;
+      if(exit){
+        var result=exit.call(document);
+        if(result && result.catch) result.catch(function(){});
+      }
+    }
+  };
+  document.addEventListener('fullscreenchange',updateFullscreenButton);
+  document.addEventListener('webkitfullscreenchange',updateFullscreenButton);
+
+  document.getElementById('doneBack').onclick=function(){
+    doneScreen.classList.remove('show');
+    currentStudent=0;
+    remaining=selected;
+    status.textContent='READY';
+    updateBars();
+    render();
+  };
+  document.addEventListener('keydown',function(e){
+    if(e.key==='Escape' && doneScreen.classList.contains('show')){
+      doneScreen.classList.remove('show');
+      currentStudent=0;
+      remaining=selected;
+      status.textContent='READY';
+      updateBars();
+      render();
+    }
+  });
+
+  updateBars();render();updateFullscreenButton();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pair Timer</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; font-family: Arial, Helvetica, sans-serif; }
+  body { background: #fffbd2; color: #111; overflow-x: hidden; }
+
+  .header {
+    height: 64px;
+    background: #2f6cad;
+    color: white;
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    font-size: 44px;
+    font-weight: 400;
+  }
+
+  .app {
+    width: min(92vw, 1350px);
+    margin: 14px auto 18px;
+    background: #5db0df;
+    border: 7px solid #8fdcf3;
+    border-radius: 22px;
+    box-shadow: 0 6px 14px rgba(0,0,0,.12);
+    padding: 12px;
+  }
+
+  .setup-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 250px;
+    gap: 16px;
+  }
+
+  .main-panel { min-width: 0; }
+
+  .display-box {
+    background: #fffdf0;
+    border: 4px solid #8ba6a9;
+    border-radius: 20px;
+    min-height: 170px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .time-editor {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    color: #050505;
+  }
+
+  .time-input {
+    width: 190px;
+    height: 125px;
+    border: 3px solid transparent;
+    border-radius: 14px;
+    background: transparent;
+    color: #050505;
+    font-size: clamp(82px, 8.5vw, 145px);
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+    padding: 0;
+    outline: none;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+
+  .time-input:focus {
+    border-color: #9ac8ef;
+    background: rgba(154,200,239,.22);
+  }
+
+  .colon {
+    font-size: clamp(82px, 8.5vw, 145px);
+    font-weight: 700;
+    line-height: 1;
+    margin-top: -8px;
+  }
+
+  .arrow-column {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .arrow-column.left { left: 20px; }
+  .arrow-column.right { right: 20px; }
+
+  .arrow {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 3px solid #fff;
+    background: #050505;
+    color: #fff;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,.25);
+  }
+  .arrow:active { transform: scale(.94); }
+
+  .setup-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 14px;
+    margin: 12px 0 14px;
+  }
+
+  button { font-family: inherit; }
+  .round-button {
+    width: 100px;
+    height: 100px;
+    min-width: 100px;
+    min-height: 100px;
+    flex: 0 0 100px;
+    box-sizing: border-box;
+    border-radius: 50%;
+    border: 3px solid #fff;
+    cursor: pointer;
+    font-size: 17px;
+    line-height: 1.05;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 0;
+    box-shadow: 0 3px 6px rgba(0,0,0,.22);
+  }
+  .start-btn { background: #70d274; color: #111; }
+  .clear-btn { background: #153f57; color: #fff; }
+  .reset-btn { background: #edf4f7; color: #222; }
+  .round-button:active, .small-button:active, .side-button:active { transform: scale(.97); }
+
+  .presets {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 9px;
+    padding: 0 0 2px;
+  }
+  .presets-label {
+    color: white;
+    font-size: 17px;
+    margin-right: 2px;
+  }
+  .preset {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 2px solid #eaf5f8;
+    background: #eef5f7;
+    color: #222;
+    font-size: 16px;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0,0,0,.16);
+  }
+
+  .side-panel {
+    background: #18516d;
+    border-radius: 18px;
+    color: white;
+    padding: 14px 12px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 480px;
+  }
+
+  .side-title { font-size: 18px; font-weight: 700; margin-bottom: 10px; }
+
+  .player-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    width: 100%;
+    align-items: center;
+  }
+
+  .player {
+    width: 118px;
+    height: 118px;
+    border-radius: 50%;
+    border: 4px solid #111;
+    cursor: pointer;
+    font-size: 48px;
+    color: #111;
+    transition: transform .12s, box-shadow .12s, opacity .12s;
+  }
+  .player.a { background: #df6552; }
+  .player.b { background: #70d274; }
+  .player.active {
+    border-color: #f2d24a;
+    box-shadow: 0 0 0 3px rgba(242,210,74,.2);
+  }
+  .run-side .player.active {
+    border-color: #f2d24a;
+    box-shadow: 0 0 0 4px rgba(242,210,74,.28);
+  }
+
+  .divider { width: 90%; border: 0; border-top: 3px solid rgba(255,255,255,.7); margin: 16px 0 12px; }
+
+  .option-label { font-size: 15px; font-weight: 700; margin: 0 0 8px; }
+  .segmented {
+    display: flex;
+    width: 160px;
+    background: rgba(220,238,244,.25);
+    border-radius: 20px;
+    padding: 3px;
+    margin-bottom: 12px;
+  }
+  .segmented button {
+    flex: 1;
+    border: 0;
+    border-radius: 17px;
+    background: transparent;
+    color: #dbe8ec;
+    padding: 7px 5px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .segmented button.selected {
+    background: #fff;
+    color: #333;
+  }
+
+  .color-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: white;
+    font-size: 14px;
+    margin: 0 0 8px;
+  }
+  .color-input {
+    width: 58px;
+    height: 44px;
+    padding: 2px;
+    border: 2px solid #fff;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  /* Running view */
+  .running { display: none; }
+  .running.active { display: block; }
+  .setup.hidden { display: none; }
+
+  .run-status {
+    color: white;
+    text-align: center;
+    font-size: 18px;
+    margin: 0 0 12px;
+    letter-spacing: .5px;
+  }
+
+  .run-display {
+    background: #fffdf0;
+    border: 4px solid #8ba6a9;
+    border-radius: 20px;
+    height: 205px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .run-time {
+    font-size: clamp(100px, 12vw, 180px);
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -5px;
+  }
+
+  .progress-track {
+    height: 10px;
+    background: #3e7590;
+    border-radius: 8px;
+    margin: 24px 0 18px;
+    overflow: visible;
+    position: relative;
+  }
+  .progress-fill {
+    height: 100%;
+    width: 100%;
+    border-radius: 8px;
+    background: #286de0;
+    transform-origin: left center;
+    position: relative;
+  }
+  .progress-dot {
+    position: absolute;
+    right: -10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #286de0;
+  }
+
+  .run-controls {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+  }
+  .small-button {
+    min-width: 100px;
+    height: 62px;
+    padding: 0 18px;
+    border-radius: 50px;
+    border: 3px solid white;
+    cursor: pointer;
+    font-size: 16px;
+    box-shadow: 0 3px 6px rgba(0,0,0,.18);
+  }
+  .back-btn { background: #050505; color: white; }
+  .run-reset { background: #dcebf1; color: #17384b; }
+  .run-start { background: #70d274; color: #111; }
+  .run-fullscreen {
+    width: 100px;
+    min-width: 100px;
+    height: 100px;
+    min-height: 100px;
+    flex: 0 0 100px;
+    box-sizing: border-box;
+    padding: 0;
+    border-radius: 50%;
+    font-size: 14px;
+    line-height: 1.05;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .run-side {
+    position: absolute;
+    right: 4px;
+    top: 18px;
+    bottom: 18px;
+    width: 220px;
+    background: #18516d;
+    border-radius: 18px;
+  }
+  .running-layout { position: relative; padding-right: 245px; }
+
+  .turn-label {
+    text-align: center;
+    color: white;
+    font-size: 17px;
+    font-weight: 700;
+    margin: 0 0 12px;
+  }
+
+  .run-player {
+    width: 118px;
+    height: 118px;
+    display: block;
+    margin: 0 auto 18px;
+    border-radius: 50%;
+    border: 4px solid #111;
+    font-size: 48px;
+  }
+
+  .run-side .player.a { background: #df6552; }
+  .run-side .player.b { background: #70d274; }
+
+  .run-side-inner { padding: 18px; }
+
+  .message {
+    color: white;
+    text-align: center;
+    min-height: 24px;
+    margin-top: 10px;
+    font-size: 16px;
+  }
+
+
+  .fullscreen-btn { background: #8fb9c8; color: #111; }
+  :fullscreen body { background: #fffbd2; }
+  :-webkit-full-screen body { background: #fffbd2; }
+  :fullscreen .header { height: 58px; }
+  :-webkit-full-screen .header { height: 58px; }
+  :fullscreen .app { width: 96vw; max-width: 1500px; margin: 10px auto; }
+  :-webkit-full-screen .app { width: 96vw; max-width: 1500px; margin: 10px auto; }
+
+  .pair-complete-screen {
+    position: fixed;
+    inset: 0;
+    background: #bd4f3d;
+    color: #fff;
+    z-index: 9999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 42px;
+    text-align: center;
+    font-size: clamp(70px, 11vw, 180px);
+    font-weight: 400;
+    font-family: Arial, Helvetica, sans-serif;
+    padding: 16px;
+  }
+  .pair-complete-screen.show { display: flex; }
+  .pair-complete-exit {
+    border: 0;
+    border-radius: 50px;
+    padding: 16px 30px;
+    background: #fff;
+    color: #222;
+    font-size: 22px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 10px #0003;
+  }
+  .pair-complete-exit:active { transform: scale(.97); }
+
+  @media (max-width: 850px) {
+    .header { height: 66px; font-size: 40px; }
+    .app { margin-top: 16px; padding: 16px; border-width: 7px; }
+    .setup-layout { grid-template-columns: 1fr; }
+    .side-panel { min-height: 0; }
+    .player-buttons { flex-direction: row; justify-content: center; }
+    .player { width: 110px; height: 110px; font-size: 46px; }
+    .running-layout { padding-right: 0; }
+    .run-side { position: static; width: auto; margin-top: 22px; padding: 10px; }
+    .run-side-inner { display: flex; align-items: center; justify-content: center; gap: 18px; flex-wrap: wrap; }
+    .turn-label { width: 100%; }
+    .run-player { margin: 0; width: 90px; height: 90px; font-size: 42px; }
+  }
+
+  @media (max-width: 600px) {
+    .time-input { width: 135px; height: 105px; font-size: 82px; }
+    .colon { font-size: 82px; }
+    .display-box { min-height: 160px; }
+    .arrow-column.left { left: 10px; }
+    .arrow-column.right { right: 10px; }
+    .arrow { width: 38px; height: 38px; font-size: 22px; }
+    .setup-controls { gap: 10px; }
+    .round-button { width: 90px; height: 90px; min-width: 90px; min-height: 90px; flex-basis: 90px; font-size: 16px; }
+    .presets { justify-content: center; }
+    .presets-label { width: 100%; text-align: center; }
+    .run-display { height: 180px; }
+    .run-time { font-size: 80px; letter-spacing: -3px; }
+  }
+</style>
+</head>
+<body>
+<div class="pair-complete-screen" id="pairCompleteScreen"><div>PAIR SHARE COMPLETE!</div><button class="pair-complete-exit" id="pairCompleteExit">BACK TO TIMER</button></div>
+<header class="header">Pair Timer</header>
+
+<main class="app">
+  <section class="setup" id="setupView">
+    <div class="setup-layout">
+      <div class="main-panel">
+        <div class="display-box">
+          <div class="arrow-column left">
+            <button class="arrow" id="minUp" aria-label="Add one minute">▲</button>
+            <button class="arrow" id="minDown" aria-label="Subtract one minute">▼</button>
+          </div>
+
+          <div class="time-editor">
+            <input class="time-input" id="minutes" inputmode="numeric" maxlength="2" value="00" aria-label="Minutes">
+            <span class="colon">:</span>
+            <input class="time-input" id="seconds" inputmode="numeric" maxlength="2" value="30" aria-label="Seconds">
+          </div>
+
+          <div class="arrow-column right">
+            <button class="arrow" id="secUp" aria-label="Add one second">▲</button>
+            <button class="arrow" id="secDown" aria-label="Subtract one second">▼</button>
+          </div>
+        </div>
+
+        <div class="setup-controls">
+          <button class="round-button start-btn" id="setupStart">START</button>
+          <button class="round-button clear-btn" id="clearBtn">CLEAR</button>
+          <button class="round-button fullscreen-btn" id="setupFullscreen">FULL<br>SCREEN</button>
+        </div>
+
+        <div class="presets">
+          <span class="presets-label">PRESETS</span>
+          <button class="preset" data-seconds="15">:15</button>
+          <button class="preset" data-seconds="30">:30</button>
+          <button class="preset" data-seconds="45">:45</button>
+          <button class="preset" data-seconds="60">1</button>
+        </div>
+      </div>
+
+      <aside class="side-panel">
+        <div class="side-title">WHOSE TURN?</div>
+        <div class="player-buttons">
+          <button class="player a active" id="chooseA" aria-label="Choose Player A">A</button>
+          <button class="player b" id="chooseB" aria-label="Choose Player B">B</button>
+        </div>
+
+        <hr class="divider">
+
+        <div class="option-label">WHO STARTS?</div>
+        <div class="segmented" id="starterGroup">
+          <button data-starter="A" class="selected">A</button>
+          <button data-starter="RANDOM">RANDOM</button>
+          <button data-starter="B">B</button>
+        </div>
+
+        <div class="option-label">ROUNDS</div>
+        <div class="segmented" id="roundGroup">
+          <button data-rounds="SINGLE" class="selected">SINGLE</button>
+          <button data-rounds="CONTINUOUS">CONTINUOUS</button>
+        </div>
+
+        <div class="color-row">
+          <span>BAR COLOR</span>
+          <input class="color-input" id="barColor" type="color" value="#286de0" aria-label="Choose bar color">
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <section class="running" id="runningView">
+    <div class="running-layout">
+      <div class="main-panel">
+        <div class="run-status" id="runStatus">SINGLE :30</div>
+
+        <div class="run-display">
+          <div class="run-time" id="runTime">00:30</div>
+        </div>
+
+        <div class="progress-track">
+          <div class="progress-fill" id="progressFill">
+            <div class="progress-dot"></div>
+          </div>
+        </div>
+
+        <div class="run-controls">
+          <button class="small-button back-btn" id="backBtn">BACK</button>
+          <button class="small-button run-reset" id="runReset">RESET</button>
+          <button class="small-button run-start" id="runStart">START</button>
+          <button class="small-button fullscreen-btn run-fullscreen" id="runFullscreen">FULL<br>SCREEN</button>
+        </div>
+        <div class="message" id="runMessage"></div>
+      </div>
+
+      <aside class="run-side">
+        <div class="run-side-inner">
+          <div class="turn-label">WHOSE TURN?</div>
+          <button class="player run-player a" id="runA">A</button>
+          <button class="player run-player b" id="runB">B</button>
+        </div>
+      </aside>
+    </div>
+  </section>
+</main>
+
+<script>
+(function () {
+  "use strict";
+
+  var selected = 30;
+  var remaining = 30;
+  var originalTime = 30;
+  var running = false;
+  var interval = null;
+  var last = 0;
+  var currentPlayer = "A";
+  var starter = "A";
+  var rounds = "SINGLE";
+  var turnsRemaining = 0;
+  var barColor = "#286de0";
+
+  var minutes = document.getElementById("minutes");
+  var seconds = document.getElementById("seconds");
+  var setupView = document.getElementById("setupView");
+  var runningView = document.getElementById("runningView");
+  var runTime = document.getElementById("runTime");
+  var runStatus = document.getElementById("runStatus");
+  var progressFill = document.getElementById("progressFill");
+  var runMessage = document.getElementById("runMessage");
+  var runStart = document.getElementById("runStart");
+  var runA = document.getElementById("runA");
+  var runB = document.getElementById("runB");
+  var pairCompleteScreen = document.getElementById("pairCompleteScreen");
+
+  function clamp(n, min, max) {
+    return Math.max(min, Math.min(max, n));
+  }
+
+  function formatTime(total) {
+    total = Math.max(0, Math.floor(total));
+    var m = Math.floor(total / 60);
+    var s = total % 60;
+    return String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+  }
+
+  function toggleFullscreen() {
+    var doc = document;
+    var isFull = doc.fullscreenElement || doc.webkitFullscreenElement;
+    if (!isFull) {
+      var el = doc.documentElement;
+      if (el.requestFullscreen) el.requestFullscreen();
+      else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+    } else {
+      if (doc.exitFullscreen) doc.exitFullscreen();
+      else if (doc.webkitExitFullscreen) doc.webkitExitFullscreen();
+    }
+  }
+
+  function updateFullscreenLabels() {
+    var isFull = document.fullscreenElement || document.webkitFullscreenElement;
+    var setupButton = document.getElementById("setupFullscreen");
+    var runButton = document.getElementById("runFullscreen");
+    if (isFull) {
+      setupButton.innerHTML = "EXIT FULL<br>SCREEN";
+      runButton.innerHTML = "EXIT FULL<br>SCREEN";
+    } else {
+      setupButton.innerHTML = "FULL<br>SCREEN";
+      runButton.innerHTML = "FULL<br>SCREEN";
+    }
+  }
+
+  function setFields(total) {
+    total = clamp(Math.round(total), 0, 5999);
+    minutes.value = String(Math.floor(total / 60)).padStart(2, "0");
+    seconds.value = String(total % 60).padStart(2, "0");
+  }
+
+  function readFields() {
+    var m = parseInt(minutes.value.replace(/\D/g, ""), 10);
+    var s = parseInt(seconds.value.replace(/\D/g, ""), 10);
+    if (isNaN(m)) m = 0;
+    if (isNaN(s)) s = 0;
+    s = clamp(s, 0, 59);
+    return clamp(m * 60 + s, 0, 5999);
+  }
+
+  function commitFields() {
+    if (running) return;
+    var value = readFields();
+    selected = value;
+    remaining = value;
+    originalTime = value;
+    setFields(value);
+    updateRunDisplay();
+  }
+
+  function adjust(delta) {
+    if (running) return;
+    var value = clamp(readFields() + delta, 0, 5999);
+    selected = value;
+    remaining = value;
+    originalTime = value;
+    setFields(value);
+    runMessage.textContent = "";
+  }
+
+  function stopInterval() {
+    if (interval !== null) {
+      clearInterval(interval);
+      interval = null;
+    }
+    running = false;
+  }
+
+  function updatePlayers() {
+    runA.classList.toggle("active", currentPlayer === "A");
+    runB.classList.toggle("active", currentPlayer === "B");
+  }
+
+  function updateRunDisplay() {
+    runTime.textContent = formatTime(remaining);
+    var ratio = originalTime > 0 ? clamp(remaining / originalTime, 0, 1) : 0;
+    progressFill.style.transform = "scaleX(" + ratio + ")";
+    progressFill.style.background = barColor;
+    var dot = progressFill.querySelector(".progress-dot");
+    if (dot) dot.style.background = barColor;
+    runStatus.textContent = (rounds === "SINGLE" ? "SINGLE" : "CONTINUOUS") + " " + formatTime(originalTime);
+    updatePlayers();
+  }
+
+  var audioContext = null;
+
+  function ringBell() {
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      if (!audioContext) audioContext = new AC();
+      if (audioContext.state === "suspended") audioContext.resume();
+
+      var now = audioContext.currentTime;
+      for (var i = 0; i < 2; i++) {
+        var osc = audioContext.createOscillator();
+        var gain = audioContext.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(880, now + i * 0.22);
+        osc.frequency.exponentialRampToValueAtTime(660, now + i * 0.22 + 0.16);
+        gain.gain.setValueAtTime(0.0001, now + i * 0.22);
+        gain.gain.exponentialRampToValueAtTime(0.28, now + i * 0.22 + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.22 + 0.18);
+        osc.connect(gain);
+        gain.connect(audioContext.destination);
+        osc.start(now + i * 0.22);
+        osc.stop(now + i * 0.22 + 0.2);
+      }
+    } catch (e) {}
+  }
+
+  function runFreshTurn() {
+  // Start/restart the current person's turn.
+  remaining = originalTime;
+  updateRunDisplay();
+
+  running = true;
+  runStart.textContent = "PAUSE";
+  runMessage.textContent = "";
+  last = Date.now();
+
+  if (interval !== null) clearInterval(interval);
+
+  interval = setInterval(function () {
+    var now = Date.now();
+    var elapsed = (now - last) / 1000;
+    last = now;
+
+    remaining = Math.max(0, remaining - elapsed);
+
+    if (remaining <= 0) {
+      ringBell();
+
+      // SINGLE pair share = exactly two turns: one for each partner.
+      // CONTINUOUS = keep alternating indefinitely.
+      if (rounds === "CONTINUOUS" || turnsRemaining > 1) {
+        if (rounds === "SINGLE") turnsRemaining--;
+        currentPlayer = currentPlayer === "A" ? "B" : "A";
+        remaining = originalTime;
+        last = Date.now();
+        updateRunDisplay();
+        return;
+      }
+
+      // Both partners have completed their single pair share.
+      remaining = 0;
+      updateRunDisplay();
+      clearInterval(interval);
+      interval = null;
+      running = false;
+      runStart.textContent = "START";
+      runMessage.textContent = "";
+      pairCompleteScreen.classList.add("show");
+      return;
+    }
+    updateRunDisplay();
+  }, 50);
+}
+
+function startTimer() {
+    if (running) {
+      stopInterval();
+      runStart.textContent = "START";
+      return;
+    }
+
+    if (originalTime <= 0) {
+      runMessage.textContent = "Set a time first.";
+      return;
+    }
+
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (AC && !audioContext) audioContext = new AC();
+      if (audioContext && audioContext.state === "suspended") audioContext.resume();
+    } catch (e) {}
+
+    // If a SINGLE pair share has fully completed, START begins a fresh A→B pair.
+    // If the timer is merely paused mid-turn, preserve the current turn.
+    if (rounds === "SINGLE" && remaining <= 0) {
+      turnsRemaining = 2;
+      remaining = originalTime;
+    }
+
+    runFreshTurn();
+  }
+
+  function begin() {
+    commitFields();
+
+    if (selected <= 0) {
+      runMessage.textContent = "Set a time first.";
+      return;
+    }
+
+    originalTime = selected;
+    remaining = selected;
+    turnsRemaining = rounds === "SINGLE" ? 2 : 0;
+    runMessage.textContent = "";
+
+    if (starter === "RANDOM") {
+      currentPlayer = Math.random() < 0.5 ? "A" : "B";
+    } else {
+      currentPlayer = starter;
+    }
+
+    setupView.classList.add("hidden");
+    runningView.classList.add("active");
+    updateRunDisplay();
+    startTimer();
+  }
+
+  function backToSetup() {
+    stopInterval();
+    setupView.classList.remove("hidden");
+    runningView.classList.remove("active");
+    selected = originalTime;
+    remaining = originalTime;
+    setFields(selected);
+    runStart.textContent = "START";
+    runMessage.textContent = "";
+  }
+
+  function resetRun() {
+    stopInterval();
+    remaining = originalTime;
+    runStart.textContent = "START";
+    runMessage.textContent = "";
+    updateRunDisplay();
+  }
+
+  document.getElementById("pairCompleteExit").addEventListener("click", function () {
+    pairCompleteScreen.classList.remove("show");
+    remaining = originalTime;
+    turnsRemaining = rounds === "SINGLE" ? 2 : 0;
+    runStart.textContent = "START";
+    runMessage.textContent = "";
+    updateRunDisplay();
+  });
+
+  document.getElementById("minUp").addEventListener("click", function () { adjust(60); });
+  document.getElementById("minDown").addEventListener("click", function () { adjust(-60); });
+  document.getElementById("secUp").addEventListener("click", function () { adjust(1); });
+  document.getElementById("secDown").addEventListener("click", function () { adjust(-1); });
+
+  minutes.addEventListener("blur", commitFields);
+  seconds.addEventListener("blur", commitFields);
+
+  [minutes, seconds].forEach(function (input) {
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        commitFields();
+        input.blur();
+      }
+      if (e.key === "Escape") {
+        setFields(selected);
+        input.blur();
+      }
+    });
+
+    input.addEventListener("input", function () {
+      this.value = this.value.replace(/\D/g, "").slice(0, 2);
+    });
+  });
+
+  document.querySelectorAll(".preset").forEach(function (button) {
+    button.addEventListener("click", function () {
+      var value = Number(this.getAttribute("data-seconds"));
+      selected = value;
+      remaining = value;
+      originalTime = value;
+      setFields(value);
+      runMessage.textContent = "";
+    });
+  });
+
+  document.getElementById("setupStart").addEventListener("click", begin);
+  document.getElementById("clearBtn").addEventListener("click", function () {
+    stopInterval();
+    selected = 0;
+    remaining = 0;
+    originalTime = 0;
+    setFields(0);
+    runMessage.textContent = "";
+  });
+
+  var randomRevealTimer = null;
+
+  document.querySelectorAll("#starterGroup button").forEach(function (button) {
+    button.addEventListener("click", function () {
+      var choice = button.getAttribute("data-starter");
+
+      document.querySelectorAll("#starterGroup button").forEach(function (b) {
+        b.classList.remove("selected");
+      });
+      button.classList.add("selected");
+
+      if (choice === "RANDOM") {
+        starter = "RANDOM";
+        currentPlayer = "?";
+        document.getElementById("chooseA").textContent = "?";
+        document.getElementById("chooseB").textContent = "?";
+        document.getElementById("chooseA").classList.remove("active");
+        document.getElementById("chooseB").classList.remove("active");
+
+        if (randomRevealTimer) clearTimeout(randomRevealTimer);
+
+        randomRevealTimer = setTimeout(function () {
+          currentPlayer = Math.random() < 0.5 ? "A" : "B";
+          starter = currentPlayer;
+
+          document.getElementById("chooseA").textContent = "A";
+          document.getElementById("chooseB").textContent = "B";
+          document.getElementById("chooseA").classList.toggle("active", currentPlayer === "A");
+          document.getElementById("chooseB").classList.toggle("active", currentPlayer === "B");
+
+          document.querySelectorAll("#starterGroup button").forEach(function (b) {
+            b.classList.toggle("selected", b.getAttribute("data-starter") === "RANDOM");
+          });
+        }, 650);
+      } else {
+        starter = choice;
+        currentPlayer = choice;
+        document.getElementById("chooseA").textContent = "A";
+        document.getElementById("chooseB").textContent = "B";
+        document.getElementById("chooseA").classList.toggle("active", choice === "A");
+        document.getElementById("chooseB").classList.toggle("active", choice === "B");
+      }
+    });
+  });
+
+  document.querySelectorAll("#roundGroup button").forEach(function (button) {
+    button.addEventListener("click", function () {
+      document.querySelectorAll("#roundGroup button").forEach(function (b) { b.classList.remove("selected"); });
+      button.classList.add("selected");
+      rounds = button.getAttribute("data-rounds");
+    });
+  });
+
+  function selectStarter(player) {
+    starter = player;
+    currentPlayer = player;
+
+    document.querySelectorAll("#starterGroup button").forEach(function (b) {
+      b.classList.toggle("selected", b.getAttribute("data-starter") === player);
+    });
+
+    document.getElementById("chooseA").classList.toggle("active", player === "A");
+    document.getElementById("chooseB").classList.toggle("active", player === "B");
+  }
+
+  document.getElementById("chooseA").addEventListener("click", function () {
+    selectStarter("A");
+  });
+
+  document.getElementById("chooseB").addEventListener("click", function () {
+    selectStarter("B");
+  });
+
+  document.getElementById("barColor").addEventListener("input", function () {
+    barColor = this.value;
+    updateRunDisplay();
+  });
+
+  runStart.addEventListener("click", startTimer);
+  document.getElementById("runReset").addEventListener("click", resetRun);
+  document.getElementById("backBtn").addEventListener("click", backToSetup);
+  document.getElementById("setupFullscreen").addEventListener("click", toggleFullscreen);
+  document.getElementById("runFullscreen").addEventListener("click", toggleFullscreen);
+  document.addEventListener("fullscreenchange", updateFullscreenLabels);
+  document.addEventListener("webkitfullscreenchange", updateFullscreenLabels);
+
+  runA.addEventListener("click", function () {
+    currentPlayer = "A";
+    updateRunDisplay();
+  });
+  runB.addEventListener("click", function () {
+    currentPlayer = "B";
+    updateRunDisplay();
+  });
+
+  setFields(selected);
+  updateRunDisplay();
+  updateFullscreenLabels();
+})();
+</script>
+</body>
+</html>
